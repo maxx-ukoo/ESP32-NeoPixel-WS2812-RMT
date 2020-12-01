@@ -18,7 +18,7 @@
 // This is the buffer which the hw peripheral will access while pulsing the output pin
 rmt_item32_t led_data_buffer[LED_BUFFER_ITEMS];
 
-void setup_rmt_data_buffer(struct led_state new_state);
+void setup_rmt_data_buffer(rgbVal *pixels);
 
 void ws2812_control_init(void)
 {
@@ -37,16 +37,21 @@ void ws2812_control_init(void)
   ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, 0));
 }
 
-void ws2812_write_leds(struct led_state new_state) {
-  setup_rmt_data_buffer(new_state);
+void ws2812_write_leds(rgbVal *pixels) {
+  setup_rmt_data_buffer(pixels);
   ESP_ERROR_CHECK(rmt_write_items(LED_RMT_TX_CHANNEL, led_data_buffer, LED_BUFFER_ITEMS, false));
   ESP_ERROR_CHECK(rmt_wait_tx_done(LED_RMT_TX_CHANNEL, portMAX_DELAY));
 }
 
-void setup_rmt_data_buffer(struct led_state new_state) 
+void setup_rmt_data_buffer(rgbVal *pixels) 
 {
+  // -- 
   for (uint32_t led = 0; led < NUM_LEDS; led++) {
-    uint32_t bits_to_send = new_state.leds[led];
+    uint32_t bits_to_send = 0;
+    bits_to_send += (pixels[led].r) << 8;
+    bits_to_send += (pixels[led].g);
+    bits_to_send += (pixels[led].b) << 16;
+
     uint32_t mask = 1 << (BITS_PER_LED_CMD - 1);
     for (uint32_t bit = 0; bit < BITS_PER_LED_CMD; bit++) {
       uint32_t bit_is_set = bits_to_send & mask;
